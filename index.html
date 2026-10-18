@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>backup-claude skill</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --text2: #cbd5e1; --muted: #94a3b8;
+    --orange: #fb923c; --teal: #2dd4bf; --border: #334155; --border2: #1e293b; --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text2); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { color: var(--text); font-size: 1.9rem; margin: 0 0 4px; }
+  h2 { color: var(--text); font-size: 1.3rem; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--border); }
+  h3 { color: var(--teal); font-size: 1.05rem; margin: 24px 0 8px; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+  code { font: 0.88em ui-monospace, "Cascadia Code", Consolas, monospace; background: #0b1222; border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--text); overflow-wrap: anywhere; }
+  pre { background: #0b1222; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+  pre code { background: none; border: 0; padding: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin: 16px 0; }
+  .card.warn { border-color: rgba(251, 146, 60, 0.45); }
+  .card.ok { border-color: rgba(45, 212, 191, 0.45); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .stat b { display: block; color: var(--orange); font-size: 1.4rem; }
+  .stat span { color: var(--muted); font-size: 0.85rem; }
+  .tbl { overflow-x: auto; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text); background: var(--card); }
+  td.num { text-align: right; white-space: nowrap; }
+  .yes { color: var(--teal); font-weight: 600; }
+  .no { color: var(--orange); font-weight: 600; }
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>backup-claude</h1>
+<p class="sub">A Claude Code skill that copies the Claude Code and Claude Desktop setup into one zip file and restores that zip on a new Windows laptop. Written 2026-10-17. Source: <a href="https://github.com/az9713/claude-backup-skill" style="color: var(--teal)">github.com/az9713/claude-backup-skill</a>.</p>
+
+<div class="stats">
+  <div class="stat"><b>9,215 MB</b><span>zip size, last run</span></div>
+  <div class="stat"><b>104,778</b><span>files in the zip</span></div>
+  <div class="stat"><b>4</b><span>items skipped (unreadable links)</span></div>
+  <div class="stat"><b>D:\backups\claude</b><span>default destination (external USB drive)</span></div>
+</div>
+
+<h2>1. What the skill does</h2>
+<p>The skill has two PowerShell scripts in <code>%USERPROFILE%\.claude\skills\backup-claude\scripts\</code>.</p>
+<ul>
+  <li><b><code>backup.ps1</code></b> runs on the old laptop. It writes one zip and two receipt files to <code>D:\backups\claude</code>. It creates the folder if it does not exist.</li>
+  <li><b><code>restore.ps1</code></b> runs on the new laptop. It unpacks the zip and merges the files into the user profile and into <code>%APPDATA%\Claude</code>.</li>
+</ul>
+<p>Each run writes three files with the same name stem, <code>claude-backup-&lt;COMPUTER&gt;-&lt;yyyyMMdd-HHmm&gt;</code>:</p>
+<div class="tbl"><table>
+  <tr><th>File</th><th>Content</th></tr>
+  <tr><td><code>.zip</code></td><td>The backup. The zip also holds <code>claude-backup-manifest.json</code>, which records the user name, profile path, computer name and date of the backup.</td></tr>
+  <tr><td><code>.files.txt</code></td><td>The receipt: one line for each file that the script wrote into the zip.</td></tr>
+  <tr><td><code>.skipped.txt</code></td><td>Each file or folder that an error kept out of the zip, with the Windows error text. If nothing failed, it says <code>No files skipped.</code></td></tr>
+</table></div>
+
+<h3>Commands</h3>
+<pre><code># Back up (old laptop). Claude Code can stay open.
+powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\skills\backup-claude\scripts\backup.ps1"
+
+# Restore (new laptop). Close Claude Code and Claude Desktop first. Use a plain PowerShell window.
+powershell -ExecutionPolicy Bypass -File restore.ps1 -Zip D:\backups\claude\claude-backup-&lt;COMPUTER&gt;-20261017-2149.zip</code></pre>
+<p>If Windows gives the USB drive a letter other than <code>D:</code>, add <code>-Dest &lt;letter&gt;:\backups\claude</code> to the backup command. <code>restore.ps1</code> is in the zip at <code>.claude/skills/backup-claude/scripts/restore.ps1</code>. Copy it out of the zip before you run it.</p>
+
+<h2>2. How the backup works</h2>
+<ol>
+  <li><b>Make the destination folder.</b> <code>New-Item -ItemType Directory -Force</code> creates <code>D:\backups\claude</code> and any missing parent folders.</li>
+  <li><b>Choose the sources.</b> From <code>%USERPROFILE%</code>: <code>.claude\</code>, <code>.claude.json</code> and <code>AGENTS.md</code>. From <code>%APPDATA%\Claude</code>: a fixed list of 12 config files and session folders (section 4). The script ignores a source that does not exist.</li>
+  <li><b>Walk every folder.</b> The script reads each folder itself. It does not use <code>tar.exe</code> (section 3). It does not go into the 8 excluded <code>.claude</code> folders and files (section 5).</li>
+  <li><b>Follow links.</b> A symlink or a junction is copied as the real files that it points to. 69 skill folders are junctions: 66 into <code>%USERPROFILE%\.agents\skills</code>, 2 into <code>%USERPROFILE%\.codex\skills</code>, 1 into a folder under <code>%USERPROFILE%</code>. If a link points to its own parent folder, the script records it in <code>.skipped.txt</code> and does not follow it, because following it would repeat without end.</li>
+  <li><b>Read files that are in use.</b> Each file is opened with share mode <code>ReadWrite, Delete</code>. Thus the script can also read the transcript that a running Claude Code session writes. Only a file that another program locks exclusively fails, and that failure goes into <code>.skipped.txt</code>.</li>
+  <li><b>Write the zip.</b> The script uses the .NET <code>System.IO.Compression.ZipArchive</code> class with <code>CompressionLevel.Fastest</code>. It writes one entry for each file, keeps the file's last-write time, and stores non-ASCII names correctly.</li>
+  <li><b>Write the receipts.</b> <code>.files.txt</code> and <code>.skipped.txt</code> are UTF-8 text files.</li>
+  <li><b>Check the finished zip.</b> The script opens the zip again. It stops with an error if <code>.claude/settings.json</code> or <code>.claude.json</code> is missing. It warns if the number of entries in the zip is different from the number of lines in <code>.files.txt</code>.</li>
+</ol>
+
+<h2>3. Why the scripts do not use tar.exe</h2>
+<div class="card warn">
+  <p>The first version used the Windows <code>tar.exe</code> (bsdtar 3.8.9). On 2026-10-17 it made a zip of 8,887 MB that was not complete. A comparison of that zip with the files on disk showed:</p>
+  <ul>
+    <li>615 Claude Desktop files were missing, and 613 of them came from one Cowork session (<code>local-agent-mode-sessions\&lt;session-id&gt;</code>). One unreadable link (<code>debug/latest</code>) in that session gave the error <code>Cannot stat: Invalid argument</code>. After that error, tar did not copy the rest of that folder and gave no message about the missing files. Its only signal was exit code 1.</li>
+    <li>In a test, one locked file made tar leave out 3 other files in the same tree.</li>
+    <li>A file named <code>日本 ✓.txt</code> made tar crash with exit code <code>-1073741819</code> (access violation), and the zip was empty.</li>
+  </ul>
+  <p>The .NET version adds files one at a time and records each failure. Thus each file is in <code>.files.txt</code> or in <code>.skipped.txt</code>, and no file can be lost without a record.</p>
+</div>
+
+<h2>4. What is in the backup</h2>
+<p>Sizes are on disk before compression, measured on 2026-10-17.</p>
+<div class="tbl"><table>
+  <tr><th>Source</th><th>What it holds</th><th class="num">Size</th></tr>
+  <tr><td><code>.claude\projects\</code></td><td>Session transcripts (<code>.jsonl</code>) for 455 project folders, and the <code>memory\</code> folder in 253 of them</td><td class="num">8,367 MB</td></tr>
+  <tr><td><code>.claude\skills-archive\</code></td><td>Skills that you archived</td><td class="num">1,796 MB</td></tr>
+  <tr><td><code>.claude\plugins\</code></td><td><code>installed_plugins.json</code>, <code>known_marketplaces.json</code> (22 marketplaces), <code>blocklist.json</code>, and the plugin <code>cache</code>, <code>data</code> and <code>marketplaces</code> folders</td><td class="num">506 MB</td></tr>
+  <tr><td><code>.claude\security\</code></td><td>Kept as found; the script makes no decision about its content</td><td class="num">327 MB</td></tr>
+  <tr><td><code>.claude\file-history\</code></td><td>Checkpoints for rewind</td><td class="num">201 MB</td></tr>
+  <tr><td><code>.claude\skills\</code></td><td>Your skills, plus the content of the 61 linked skill folders (8 more are in <code>skills-archive</code>)</td><td class="num">44 MB + link targets</td></tr>
+  <tr><td>Rest of <code>.claude\</code></td><td><code>settings.json</code>, <code>CLAUDE.md</code>, <code>keybindings.json</code>, <code>mcp.json</code>, <code>.credentials.json</code>, <code>history.jsonl</code> (5.8 MB), <code>statusline-command.sh</code>, the hook scripts, <code>agents\</code>, <code>commands\</code>, <code>hooks\</code>, <code>coach\</code>, <code>jobs\</code>, <code>plans\</code>, <code>tasks\</code>, <code>teams\</code>, <code>scheduled-tasks\</code>, <code>backups\</code> and the other small folders</td><td class="num">about 100 MB</td></tr>
+  <tr><td><code>%USERPROFILE%\.claude.json</code></td><td>9 user-scope MCP servers, settings for 987 project paths, account data</td><td class="num">4 MB</td></tr>
+  <tr><td><code>%USERPROFILE%\AGENTS.md</code></td><td>Your instructions shared across agents</td><td class="num">7 MB</td></tr>
+  <tr><td><code>%APPDATA%\Claude\local-agent-mode-sessions\</code></td><td>Cowork sessions</td><td class="num">3,311 MB</td></tr>
+  <tr><td><code>%APPDATA%\Claude\Claude Extensions\</code> and <code>Claude Extensions Settings\</code></td><td>Desktop extensions and their settings</td><td class="num">114 MB</td></tr>
+  <tr><td><code>%APPDATA%\Claude\claude-code-sessions\</code></td><td>Claude Code sessions started from Desktop</td><td class="num">19 MB</td></tr>
+  <tr><td>8 Desktop config files</td><td><code>claude_desktop_config.json</code> (MCP servers, <code>coworkUserFilesPath</code>, preferences), <code>developer_settings.json</code>, <code>ccd-session-presets.json</code>, <code>ssh_configs.json</code>, <code>git-worktrees.json</code>, <code>mcp-user-tool-toggles.json</code>, <code>extensions-installations.json</code>, <code>cowork-enabled-cli-ops.json</code></td><td class="num">under 1 MB</td></tr>
+</table></div>
+<p>The sources have at least 14,767 MB on disk, and the zip is 9,215 MB.</p>
+
+<h2>5. What is not in the backup, and why</h2>
+<div class="tbl"><table>
+  <tr><th>Item</th><th class="num">Size</th><th>Reason</th></tr>
+  <tr><td><code>.claude\cache</code>, <code>debug</code>, <code>paste-cache</code>, <code>telemetry</code>, <code>statsig</code></td><td class="num">20.6 MB</td><td>Caches, debug logs and usage data. Claude Code makes them again.</td></tr>
+  <tr><td><code>.claude\shell-snapshots</code>, <code>session-env</code>, <code>daemon.lock</code></td><td class="num">54.1 MB</td><td>State for running processes on this machine. They have no use after a restart.</td></tr>
+  <tr><td><code>%APPDATA%\Claude\vm_bundles</code></td><td class="num">10,457 MB</td><td>The VM image for Cowork. Desktop downloads it again.</td></tr>
+  <tr><td><code>%APPDATA%\Claude\claude-code</code>, <code>claude-code-vm</code></td><td class="num">510 MB</td><td>Program files that Desktop installs.</td></tr>
+  <tr><td><code>Cache</code>, <code>Code Cache</code>, <code>GPUCache</code>, <code>GrShaderCache</code>, <code>ShaderCache</code>, <code>Dawn*</code>, <code>logs</code>, <code>Crashpad</code>, <code>sentry</code></td><td class="num">about 520 MB</td><td>Browser-engine caches and logs. Desktop makes them again.</td></tr>
+  <tr><td><code>config.json</code>, <code>Local Storage</code>, <code>IndexedDB</code>, <code>Network</code>, <code>Partitions</code>, <code>Session Storage</code>, <code>Local State</code></td><td class="num">about 48 MB</td><td>Desktop login and browser state. Windows encrypts it for this user on this machine (DPAPI), so it cannot work on another laptop. You log in to Desktop again.</td></tr>
+  <tr><td>16 old Desktop configs (<code>claude_desktop_config.json.03242025.a</code> … <code>claude_desktop_config_weather_only.json</code>)</td><td class="num">under 1 MB</td><td>Your old copies of the config file. Only the current file is used.</td></tr>
+  <tr><td><code>%USERPROFILE%\.claude.json.backup</code></td><td class="num">2 MB</td><td>Claude Code makes this copy of <code>.claude.json</code> automatically. The zip has the real file.</td></tr>
+  <tr><td><code>%LOCALAPPDATA%\claude-cli-nodejs</code></td><td class="num">176 MB</td><td>MCP logs.</td></tr>
+  <tr><td>4 <code>debug/latest</code> links in one Cowork session</td><td class="num">—</td><td>Windows cannot open them (<code>The file cannot be accessed by the system</code>). They point to the newest debug log and are listed in <code>.skipped.txt</code>.</td></tr>
+</table></div>
+
+<h2>6. Why these files are enough to recreate the setup</h2>
+<p>Claude Code and Claude Desktop do not keep their setup in the Windows registry or in a cloud copy. They read it from a fixed set of files in the user profile. If those files are on the new laptop at the same paths, the new installation reads the same setup. The table connects each part of the setup to its file and shows that each file is in the zip.</p>
+<div class="tbl"><table>
+  <tr><th>Part of the setup</th><th>Where Claude reads it</th><th>In zip</th></tr>
+  <tr><td>Settings: model, permissions, hooks, status line, enabled plugins, extra marketplaces, env, theme, <code>cleanupPeriodDays</code></td><td><code>.claude\settings.json</code></td><td class="yes">yes</td></tr>
+  <tr><td>Global instructions</td><td><code>.claude\CLAUDE.md</code>, <code>%USERPROFILE%\AGENTS.md</code></td><td class="yes">yes</td></tr>
+  <tr><td>Key bindings, status line script, hook scripts</td><td><code>.claude\keybindings.json</code>, <code>.claude\statusline-command.sh</code>, <code>.claude\*.ps1</code>, <code>.claude\hooks\</code></td><td class="yes">yes</td></tr>
+  <tr><td>Skills, agents, commands</td><td><code>.claude\skills\</code>, <code>.claude\agents\</code>, <code>.claude\commands\</code></td><td class="yes">yes, with links followed</td></tr>
+  <tr><td>Plugins and marketplaces</td><td><code>.claude\plugins\installed_plugins.json</code>, <code>known_marketplaces.json</code>, <code>cache\</code>, <code>marketplaces\</code>, <code>data\</code></td><td class="yes">yes</td></tr>
+  <tr><td>User MCP servers, per-project settings, account</td><td><code>%USERPROFILE%\.claude.json</code>, <code>.claude\mcp.json</code></td><td class="yes">yes</td></tr>
+  <tr><td>Login token</td><td><code>.claude\.credentials.json</code></td><td class="yes">yes</td></tr>
+  <tr><td>Auto memory</td><td><code>.claude\projects\&lt;project&gt;\memory\</code></td><td class="yes">yes</td></tr>
+  <tr><td>Sessions for <code>--resume</code>, prompt history, rewind checkpoints</td><td><code>.claude\projects\*.jsonl</code>, <code>history.jsonl</code>, <code>file-history\</code></td><td class="yes">yes</td></tr>
+  <tr><td>Desktop MCP servers and preferences</td><td><code>%APPDATA%\Claude\claude_desktop_config.json</code>, <code>developer_settings.json</code></td><td class="yes">yes</td></tr>
+  <tr><td>Desktop extensions, Desktop and Cowork sessions</td><td><code>Claude Extensions\</code>, <code>claude-code-sessions\</code>, <code>local-agent-mode-sessions\</code></td><td class="yes">yes</td></tr>
+  <tr><td>Desktop login</td><td><code>config.json</code> and the browser state</td><td class="no">no; log in again</td></tr>
+  <tr><td>Program files (Claude Code, Desktop, Cowork VM)</td><td>The installers</td><td class="no">no; install first</td></tr>
+</table></div>
+<p>Each item in section 5 belongs to one of three groups: (1) the app makes it again, (2) the app or its installer downloads it again, or (3) Windows encrypts it to the old machine, so a copy would not work. None of the three groups holds a setting that you made.</p>
+
+<div class="card ok">
+  <p><b>Evidence.</b> In a test, I set <code>USERPROFILE</code> and <code>APPDATA</code> to test folders and did a full backup and restore. The test checked these points:</p>
+  <ul>
+    <li>excluded folders were left out</li>
+    <li>a junction to a skill was followed</li>
+    <li>a file in use by another program was read</li>
+    <li>a non-ASCII file name (<code>日本 ✓ café.jsonl</code>) came back with the correct content</li>
+    <li>the restore copied the new laptop's existing <code>settings.json</code> aside before it replaced the file</li>
+  </ul>
+  <p>The only absolute file path in your <code>settings.json</code> is <code>~/.claude/statusline-command.sh</code>, and that file is in the zip.</p>
+</div>
+
+<h2>7. Conditions and limits</h2>
+<p>The argument in section 6 is true only when the conditions below are true. Read them before you start a migration.</p>
+<div class="card warn">
+  <h3>MCP servers need their programs</h3>
+  <p>The zip holds each MCP server's configuration, but not the program that the configuration starts. 8 of the 9 user MCP servers in <code>.claude.json</code> use a local command, and you must install that command on the new laptop:</p>
+  <ul>
+    <li>1 command-line tool installed with Bun, in <code>%USERPROFILE%\.bun\bin</code></li>
+    <li>1 Python virtual environment inside a project folder under <code>%USERPROFILE%\Downloads</code></li>
+    <li>1 executable that a desktop app installs under <code>%LOCALAPPDATA%\Programs</code></li>
+    <li>1 command-line tool in <code>%USERPROFILE%\.local\bin</code></li>
+    <li>2 Node.js scripts: one in a global npm package under <code>%APPDATA%\npm\node_modules</code>, one in a project folder under <code>%USERPROFILE%\Downloads</code></li>
+    <li>2 servers started through <code>npx</code> and <code>uvx</code>, which need Node.js and uv</li>
+  </ul>
+  <p>The 9th server is an HTTP server and needs nothing installed. The one MCP server in the Desktop config uses the same Node.js script as one of the Claude Code servers.</p>
+
+  <h3>3 plugin marketplaces are local folders</h3>
+  <p>19 of the 22 marketplaces come from GitHub, and Claude Code downloads them again. The other 3 point to project folders under <code>%USERPROFILE%\Downloads</code>, which are not in the zip. The zip has the cached copy of those plugins in <code>.claude\plugins\cache\</code>. To update or reinstall those plugins, you need the source folders.</p>
+
+  <h3>Same user path</h3>
+  <p>The session folder names (<code>.claude\projects\C--Users-&lt;user&gt;-…</code>), the 987 project paths in <code>.claude.json</code>, and the MCP paths above all contain the old profile path <code>C:\Users\&lt;user&gt;</code>. If the new laptop's profile path is different, <code>restore.ps1</code> shows a warning, and you must change these paths yourself.</p>
+
+  <h3>Not in the zip</h3>
+  <ul>
+    <li>Project-level <code>.claude\</code>, <code>CLAUDE.md</code>, <code>.mcp.json</code> and <code>HANDOFF.md</code>. They are in each project folder.</li>
+    <li>2 personal knowledge folders in <code>%USERPROFILE%</code> that are not part of Claude (2,898 MB, and one git repository).</li>
+    <li>claude.ai web chats. They are on Anthropic's servers. To get a copy, use claude.ai → Settings → Privacy → Export data.</li>
+  </ul>
+
+  <h3>Other points</h3>
+  <ul>
+    <li><b>Linked skills come back as plain folders.</b> After a restore, the 69 linked skill folders are normal folders and no longer junctions into <code>.agents\skills</code>. Tools that update <code>.agents\skills</code> (for example <code>npx skills</code>) do not update them.</li>
+    <li><b>The zip is not encrypted.</b> It holds <code>.credentials.json</code> and the API keys in the MCP <code>env</code> blocks. Keep it on the local USB drive. Do not put it in cloud storage.</li>
+    <li><b>The backup holds only what exists on the day of the run.</b> Your <code>cleanupPeriodDays</code> is <code>10000</code>, so Claude Code does not delete old transcripts within that time.</li>
+    <li><b>No restore on a second laptop has been done.</b> The proof in section 6 comes from the file mapping and the test-folder round trip. To prove it fully, restore the zip into a second Windows user account or onto the new laptop, and start Claude Code there. A second account also has a different user path, so that test also shows the path warning.</li>
+  </ul>
+</div>
+
+<h2>8. How the restore works</h2>
+<ol>
+  <li><b>Check that Claude is closed.</b> The script stops if any process named <code>claude</code> runs. It only checks for the process. It never stops a process.</li>
+  <li><b>Unpack the zip.</b> The .NET <code>ZipFile.ExtractToDirectory</code> unpacks the zip to <code>%TEMP%\claude-restore-&lt;stamp&gt;</code>. If the unpack fails, the script stops before it changes any file.</li>
+  <li><b>Compare the user path.</b> The script reads <code>claude-backup-manifest.json</code>. If the old profile path is different from the new one, it shows a warning.</li>
+  <li><b>Copy existing items aside.</b> Before it replaces an item, the script copies the current version to <code>%USERPROFILE%\claude-pre-restore-&lt;stamp&gt;\</code>.</li>
+  <li><b>Merge the backup.</b> <code>robocopy /E</code> copies the folders, and <code>Copy-Item</code> copies the single files. Files with the same name are replaced. Files that exist only on the new laptop stay.</li>
+  <li><b>Clean up.</b> The script deletes the temporary folder. Then start Claude Code. If it asks you to log in, run <code>/login</code>.</li>
+</ol>
+
+<h2>9. Run history, 2026-10-17</h2>
+<div class="tbl"><table>
+  <tr><th>Zip</th><th class="num">Size</th><th>Result</th></tr>
+  <tr><td><code>claude-backup-&lt;COMPUTER&gt;-20261017-2115.zip</code></td><td class="num">8,887 MB</td><td class="no">Not complete: tar left out 615 files and gave no message about them.</td></tr>
+  <tr><td><code>claude-backup-&lt;COMPUTER&gt;-20261017-2136.zip</code></td><td class="num">9,209 MB</td><td class="no">Not complete: the 69 linked skill folders are missing.</td></tr>
+  <tr><td><code>claude-backup-&lt;COMPUTER&gt;-20261017-2149.zip</code></td><td class="num">9,215 MB</td><td class="yes">Use this one. 104,778 files, 4 unreadable links skipped, all checks passed.</td></tr>
+</table></div>
+<p class="muted">The first two zips (18,096 MB together) were deleted after the third run passed its checks, so only the good backup remains on <code>D:\backups\claude</code>.</p>
+
+</main>
+</body>
+</html>
